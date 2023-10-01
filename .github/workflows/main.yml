@@ -1,150 +1,42 @@
-from kivymd.app import MDApp
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.navigationdrawer import MDNavigationLayout, MDNavigationDrawer
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.screenmanager import MDScreenManager
-from kivymd.uix.toolbar import MDTopAppBar
+name: CI
+on:
+  push:
+    branches: [ main ]
 
-from kivy.lang import Builder
+jobs:
+  build:
+    runs-on: ubuntu-20.04
 
-from kivymd.app import MDApp
+    steps:
+      - uses: actions/checkout@v2
 
-KV = '''
+      # used to cache dependencies with a timeout
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
+        shell: bash
 
-<DrawerClickableItem@MDNavigationDrawerItem>
-    focus_color: "#bababa"
-    text_color: "#124654"
-    icon_color: "#124654"
-    ripple_color: "#124654"
-    selected_color: "#124654"
-    
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v2
+        with:
+          path: .buildozer_global
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }} # Replace with your path
 
-<DrawerLabelItem@MDNavigationDrawerItem>
-    text_color: "#124654"
-    icon_color: "#124654"
-    focus_behavior: False
-    selected_color: "#124654"
-    _no_ripple_effect: True
-    
+      - uses: actions/cache@v2
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
 
-MDScreen:
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: stable
 
-    MDNavigationLayout:
-        
-        MDScreenManager:
-            
-            MDScreen:
-                
-                MDTopAppBar:
-                    title: "Главная"
-                    elevation: 4
-                    pos_hint: {"top": 1}
-                    md_bg_color: "#00A08F"
-                    specific_text_color: "#ffffff"
-                    left_action_items: [["menu", lambda x: nav_drawer.set_state("open")]]
-            
-            
-
-
-                    
-        MDNavigationDrawer:
-            id: nav_drawer
-            radius: (0, 16, 16, 0)
-           
-
-            MDNavigationDrawerMenu:
-                
-                MDNavigationDrawerHeader:
-                    title: "Ежедневник"
-                    title_color: "#124654"
-                    text: "Ничего не забыть!"
-                    spacing: "4dp"
-                    padding: "12dp", 0, 0, "56dp"
-                     
-
-                MDNavigationDrawerLabel:
-                    text: "Разделы"
-
-                DrawerClickableItem:
-                    icon: "home-outline"
-                
-                    text: "Главная"
-                    text_color: "#124654"
-
-                DrawerClickableItem:
-                    icon: "pencil-outline"
-                    text_right_color: "#124654"
-                    text: "Записи"
-
-                DrawerClickableItem:
-                    icon: "order-bool-descending-variant"
-                    text: "Список задач"
-                    text_color: "#124654"
-                    
-                DrawerClickableItem:
-                    icon: "alarm"
-                    text: "Напоминания"
-                    text_color: "#124654"
-
-                MDNavigationDrawerDivider:
-
-                DrawerClickableItem:
-                    text: "Другое"
-                    icon: "information-outline"
-                    text: "О нас"
-
-                
-'''
-
-
-class Example(MDApp):
-    def build(self):
-        #self.theme_cls.theme_style = "Dark"
-        return Builder.load_string(KV)
-
-
-Example().run()
-class ContentNavigationDrawer(MDBoxLayout):
-    pass
-
-
-class Example(MDApp):
-    def build(self):
-        #self.theme_cls.theme_style = "Dark"
-        return(
-            MDScreen(
-                MDNavigationLayout(
-                    MDScreenManager(
-                        MDScreen(
-                            MDTopAppBar(
-                                title="Navigation Drawer",
-                                elevation=4,
-                                pos_hint={"top": 1},
-                                md_bg_color="#e7e4c0",
-                                specific_text_color="#4a4939",
-                                left_action_items=[
-                                    ['menu', lambda x: self.nav_drawer_open()]
-                                ],
-
-                            )
-
-
-
-                        )
-                    ),
-
-                    MDNavigationDrawer(
-                        ContentNavigationDrawer(),
-                        id="nav_drawer",
-                        radius=(0, 16, 16, 0),
-                    ),
-                ),
-            ),
-        )
-
-    def nav_drawer_open(self, *args):
-        nav_drawer = self.root.children[0].ids.nav_drawer
-        nav_drawer.set_state("open")
-
-
-Example().run()
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: package
+          path: ${{ steps.buildozer.outputs.filename }}
