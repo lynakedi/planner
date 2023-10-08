@@ -1,10 +1,4 @@
 from kivymd.app import MDApp
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.navigationdrawer import MDNavigationLayout, MDNavigationDrawer
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.screenmanager import MDScreenManager
-from kivymd.uix.toolbar import MDTopAppBar
-
 from kivy.lang import Builder
 
 KV = '''
